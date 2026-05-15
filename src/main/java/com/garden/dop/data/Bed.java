@@ -1,16 +1,10 @@
 package com.garden.dop.data;
 
-public sealed interface Bed permits GardenBed, Room {}
-record GardenBed(
+public record Bed (
         long id,
-        long yardId,
+        long gardenId,
         String name,
         double length,
-        double width
-) implements Bed {}
-record Room(
-        long id,
-        long houseId,
-        int spaces,
+        double width,
         boolean lowLight
-) implements Bed {}
+) {}

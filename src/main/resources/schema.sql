@@ -1,0 +1,49 @@
+CREATE TABLE account (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    auth_id VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE plant (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    genus VARCHAR(255),
+    species VARCHAR(255),
+    spread_radius INT,
+    current_radius INT,
+    date_planted DATE,
+    date_watered DATE,
+    days_dry_down INT,
+    days_to_harvest INT,
+    hardiness_zone INT,
+    years_life_span INT,
+    low_light BOOLEAN
+);
+
+CREATE TABLE garden (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    account_id UUID NOT NULL REFERENCES account(id),
+    name VARCHAR(255),
+    indoors BOOLEAN,
+    hardiness_zone INT
+);
+
+
+CREATE TABLE bed (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    garden_id BIGINT NOT NULL REFERENCES garden(id)
+        ON DELETE CASCADE,
+    name VARCHAR(255),
+    length INT,
+    width INT,
+    low_light BOOLEAN
+);
+
+CREATE TABLE plant_placement (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    bed_id BIGINT NOT NULL REFERENCES bed(id)
+        ON DELETE CASCADE,
+    plant_id BIGINT NOT NULL REFERENCES plant(id)
+        ON DELETE CASCADE,
+    spread_radius INT
+);
