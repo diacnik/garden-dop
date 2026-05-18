@@ -10,13 +10,12 @@ CREATE TABLE plant (
     genus VARCHAR(255),
     species VARCHAR(255),
     spread_radius INT,
-    current_radius INT,
     date_planted DATE,
     date_watered DATE,
     days_dry_down INT,
     days_to_harvest INT,
     hardiness_zone INT,
-    years_life_span INT,
+    life_span_years INT,
     low_light BOOLEAN
 );
 
@@ -25,7 +24,8 @@ CREATE TABLE garden (
     account_id UUID NOT NULL REFERENCES account(id),
     name VARCHAR(255),
     indoors BOOLEAN,
-    hardiness_zone INT
+    hardiness_zone INT,
+    isPublic BOOLEAN
 );
 
 
@@ -39,11 +39,18 @@ CREATE TABLE bed (
     low_light BOOLEAN
 );
 
-CREATE TABLE plant_placement (
+CREATE TABLE plant_bed (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     bed_id BIGINT NOT NULL REFERENCES bed(id)
         ON DELETE CASCADE,
     plant_id BIGINT NOT NULL REFERENCES plant(id)
         ON DELETE CASCADE,
-    spread_radius INT
+);
+
+CREATE TABLE plant_garden (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    garden_id BIGINT NOT NULL REFERENCES bed(id)
+       ON DELETE CASCADE,
+    plant_id BIGINT NOT NULL REFERENCES plant(id)
+       ON DELETE CASCADE,
 );

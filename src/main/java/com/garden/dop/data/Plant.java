@@ -8,7 +8,6 @@ public record Plant (
         String genus,
         String species,
         int spreadRadius,
-        int currentRadius,
         LocalDate datePlanted,
         LocalDate dateWatered,
         int daysDryDown,

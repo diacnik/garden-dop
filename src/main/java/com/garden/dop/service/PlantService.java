@@ -20,7 +20,6 @@ public class PlantService {
                 plant.genus(),
                 plant.species(),
                 plant.spreadRadius(),
-                plant.currentRadius(),
                 plant.datePlanted(),
                 plant.dateWatered(),
                 plant.daysDryDown(),
@@ -32,7 +31,7 @@ public class PlantService {
     }
 
     // water a plant
-    // will move someone else later
+    // will move somewhere else later
     public Plant waterPlant(Plant plant){
         return new Plant(
                 plant.id(),
@@ -40,7 +39,6 @@ public class PlantService {
                 plant.genus(),
                 plant.species(),
                 plant.spreadRadius(),
-                plant.currentRadius(),
                 plant.datePlanted(),
                 LocalDate.now(),
                 plant.daysDryDown(),

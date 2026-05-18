@@ -7,6 +7,6 @@ public record Garden(
         UUID accountId,
         String name,
         boolean indoors,
-        int hardinessZone
-) {
-}
+        int hardinessZone,
+        boolean isPublic
+) {}
