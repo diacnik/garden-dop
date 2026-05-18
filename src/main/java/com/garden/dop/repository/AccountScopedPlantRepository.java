@@ -221,7 +221,7 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
         try (Connection conn = dataSource.getConnection();
         PreparedStatement prepStmt = conn.prepareStatement(sql)) {
 
-            setPreparedStatementParameters(prepStmt, plant);
+            setPreparedStatementParametersWithId(prepStmt, plant);
             prepStmt.executeUpdate();
 
         } catch (SQLException ex) {
@@ -273,5 +273,20 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
         prepStmt.setInt(9, plant.hardinessZone());
         prepStmt.setInt(10, plant.lifeSpan());
         prepStmt.setBoolean(11, plant.lowLight());
+    }
+
+    private void setPreparedStatementParametersWithId(PreparedStatement prepStmt, Plant plant) throws SQLException {
+        prepStmt.setString(1, plant.name());
+        prepStmt.setString(2, plant.genus());
+        prepStmt.setString(3, plant.species());
+        prepStmt.setInt(4, plant.spreadRadius());
+        prepStmt.setDate(5, Date.valueOf(plant.datePlanted()));
+        prepStmt.setDate(6, Date.valueOf(plant.dateWatered()));
+        prepStmt.setInt(7, plant.daysDryDown());
+        prepStmt.setInt(8, plant.daysToHarvest());
+        prepStmt.setInt(9, plant.hardinessZone());
+        prepStmt.setInt(10, plant.lifeSpan());
+        prepStmt.setBoolean(11, plant.lowLight());
+        prepStmt.setLong(12, plant.id());
     }
 }
