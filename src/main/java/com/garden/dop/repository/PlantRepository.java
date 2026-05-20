@@ -48,7 +48,7 @@ public class PlantRepository implements Repository<Plant> {
 
     public Optional<Plant> findById(long id) {
         String sql = """
-                SELECT * FROM plants WHERE id = ?;
+                SELECT * FROM plant WHERE id = ?;
                 """;
 
         try (Connection conn = dataSource.getConnection();
@@ -69,7 +69,7 @@ public class PlantRepository implements Repository<Plant> {
 
     public List<Plant> findAll() {
         String sql = """
-                SELECT * FROM plants;
+                SELECT * FROM plant;
                 """;
 
         try (Connection conn = dataSource.getConnection();
@@ -90,7 +90,7 @@ public class PlantRepository implements Repository<Plant> {
 
     public void update(Plant plant) {
         String sql = """
-                UPDATE plants SET (
+                UPDATE plant SET (
                 name = ?,
                 genus = ?,
                 species = ?,
@@ -115,7 +115,7 @@ public class PlantRepository implements Repository<Plant> {
     }
     public void delete(long id) {
         String sql = """
-                DELETE FROM plants WHERE id = ?;
+                DELETE FROM plant WHERE id = ?;
         """;
 
         try (Connection conn = dataSource.getConnection();

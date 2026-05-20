@@ -21,7 +21,7 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
 
     public void persist(Plant plant) {
         String sql = """
-                INSERT INTO plants (
+                INSERT INTO plant (
                     name,
                     genus,
                     species,
@@ -48,7 +48,7 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
     }
     public Optional<Plant> findById(long id) {
         String sql = """
-                SELECT * FROM plants WHERE id = ?;
+                SELECT * FROM plant WHERE id = ?;
                 """;
 
         try (Connection conn = dataSource.getConnection();
