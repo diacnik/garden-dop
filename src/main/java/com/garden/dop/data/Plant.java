@@ -5,11 +5,10 @@ import java.time.LocalDate;
 public record Plant (
         long id,
         String name,
+        String family,
         String genus,
         String species,
         int spreadRadius,
-        LocalDate datePlanted,
-        LocalDate dateWatered,
         int daysDryDown,
         int daysToHarvest,
         int hardinessZone,

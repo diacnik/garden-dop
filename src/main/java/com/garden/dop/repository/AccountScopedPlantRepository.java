@@ -23,17 +23,16 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
         String sql = """
                 INSERT INTO plant (
                     name,
+                    family,
                     genus,
                     species,
                     spread_radius,
-                    date_planted,
-                    date_watered,
                     days_dry_down,
                     days_to_harvest,
                     hardiness_zone,
                     years_life_span,
                     low_light)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """;
 
         try (Connection conn = dataSource.getConnection();
@@ -89,12 +88,11 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
         String sql = """
                 SELECT
                     p.id,
+                    p.family,
                     p.name,
                     p.genus,
                     p.species,
                     p.spread_radius,
-                    p.date_planted,
-                    p.date_watered,
                     p.days_dry_down,,
                     p.hardiness_zone,
                     p.life_span_years,
@@ -102,8 +100,8 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
                 FROM plant_garden pg
                     LEFT JOIN garden g ON pg.garden_id = g.id
                     LEFT JOIN plant p ON pg.plant_id = p.id
-                WHERE g.account_id = ?;
-        """;
+                WHERE g.account_id = ? AND g.isPublic = true;
+                """;
 
         try (Connection conn = dataSource.getConnection();
         PreparedStatement prepStmt = conn.prepareStatement(sql)) {
@@ -126,13 +124,12 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
         String sql = """
                 SELECT
                     p.id,
+                    p.family,
                     p.name,
                     p.genus,
                     p.species,
                     p.spread_radius,
-                    p.date_planted,
-                    p.date_watered,
-                    p.days_dry_down,,
+                    p.days_dry_down,
                     p.hardiness_zone,
                     p.life_span_years,
                     p.low_light
@@ -166,13 +163,12 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
         String sql = """
                 SELECT
                     p.id,
+                    p.family,
                     p.name,
                     p.genus,
                     p.species,
                     p.spread_radius,
-                    p.date_planted,
-                    p.date_watered,
-                    p.days_dry_down,,
+                    p.days_dry_down,
                     p.hardiness_zone,
                     p.life_span_years,
                     p.low_light
@@ -206,11 +202,10 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
                 UPDATE plant
                 SET
                     name = ?,
+                    family = ?,
                     genus = ?,
                     species = ?,
                     spread_radius = ?,
-                    date_planted = ?,
-                    date_watered = ?,
                     days_dry_down = ?,
                     days_to_harvest = ?,
                     hardiness_zone = ?,
@@ -249,11 +244,10 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
         return new Plant(
                 resultSet.getLong("id"),
                 resultSet.getString("name"),
+                resultSet.getString("family"),
                 resultSet.getString("genus"),
                 resultSet.getString("species"),
                 resultSet.getInt("spread_radius"),
-                resultSet.getDate("date_planted").toLocalDate(),
-                resultSet.getDate("date_watered").toLocalDate(),
                 resultSet.getInt("days_dry_down"),
                 resultSet.getInt("days_to_harvest"),
                 resultSet.getInt("hardiness_zone"),
@@ -264,30 +258,28 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
 
     private void setPreparedStatementParameters(PreparedStatement prepStmt, Plant plant) throws SQLException {
         prepStmt.setString(1, plant.name());
-        prepStmt.setString(2, plant.genus());
-        prepStmt.setString(3, plant.species());
-        prepStmt.setInt(4, plant.spreadRadius());
-        prepStmt.setDate(5, Date.valueOf(plant.datePlanted()));
-        prepStmt.setDate(6, Date.valueOf(plant.dateWatered()));
-        prepStmt.setInt(7, plant.daysDryDown());
-        prepStmt.setInt(8, plant.daysToHarvest());
-        prepStmt.setInt(9, plant.hardinessZone());
-        prepStmt.setInt(10, plant.lifeSpan());
-        prepStmt.setBoolean(11, plant.lowLight());
+        prepStmt.setString(2, plant.family());
+        prepStmt.setString(3, plant.genus());
+        prepStmt.setString(4, plant.species());
+        prepStmt.setInt(5, plant.spreadRadius());
+        prepStmt.setInt(6, plant.daysDryDown());
+        prepStmt.setInt(7, plant.daysToHarvest());
+        prepStmt.setInt(8, plant.hardinessZone());
+        prepStmt.setInt(9, plant.lifeSpan());
+        prepStmt.setBoolean(10, plant.lowLight());
     }
 
     private void setPreparedStatementParametersWithId(PreparedStatement prepStmt, Plant plant) throws SQLException {
         prepStmt.setString(1, plant.name());
-        prepStmt.setString(2, plant.genus());
-        prepStmt.setString(3, plant.species());
-        prepStmt.setInt(4, plant.spreadRadius());
-        prepStmt.setDate(5, Date.valueOf(plant.datePlanted()));
-        prepStmt.setDate(6, Date.valueOf(plant.dateWatered()));
-        prepStmt.setInt(7, plant.daysDryDown());
-        prepStmt.setInt(8, plant.daysToHarvest());
-        prepStmt.setInt(9, plant.hardinessZone());
-        prepStmt.setInt(10, plant.lifeSpan());
-        prepStmt.setBoolean(11, plant.lowLight());
-        prepStmt.setLong(12, plant.id());
+        prepStmt.setString(2, plant.family());
+        prepStmt.setString(3, plant.genus());
+        prepStmt.setString(4, plant.species());
+        prepStmt.setInt(5, plant.spreadRadius());
+        prepStmt.setInt(6, plant.daysDryDown());
+        prepStmt.setInt(7, plant.daysToHarvest());
+        prepStmt.setInt(8, plant.hardinessZone());
+        prepStmt.setInt(9, plant.lifeSpan());
+        prepStmt.setBoolean(10, plant.lowLight());
+        prepStmt.setLong(11, plant.id());
     }
 }
