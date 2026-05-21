@@ -25,7 +25,7 @@ CREATE TABLE garden (
     name VARCHAR(255),
     indoors BOOLEAN,
     hardiness_zone INT,
-    isPublic BOOLEAN
+    is_public BOOLEAN
 );
 
 

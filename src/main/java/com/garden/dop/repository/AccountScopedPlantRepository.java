@@ -203,18 +203,19 @@ public class AccountScopedPlantRepository implements AccountScopedRepository<Pla
 
     public void update(Plant plant) {
         String sql = """
-                UPDATE plant SET (
-                name = ?,
-                genus = ?,
-                species = ?,
-                spread_radius = ?,
-                date_planted = ?,
-                date_watered = ?,
-                days_dry_down = ?,
-                days_to_harvest = ?,
-                hardiness_zone = ?,
-                years_life_span = ?,
-                low_light = ?
+                UPDATE plant
+                SET
+                    name = ?,
+                    genus = ?,
+                    species = ?,
+                    spread_radius = ?,
+                    date_planted = ?,
+                    date_watered = ?,
+                    days_dry_down = ?,
+                    days_to_harvest = ?,
+                    hardiness_zone = ?,
+                    years_life_span = ?,
+                    low_light = ?
                 WHERE id = ?;
         """;
 

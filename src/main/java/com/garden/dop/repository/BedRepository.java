@@ -88,13 +88,14 @@ public class BedRepository implements Repository<Bed> {
     @Override
     public void update(Bed bed) {
         String sql = """
-                UPDATE bed SET (
-                    id,
+                UPDATE bed
+                SET
                     garden_id,
                     name,
                     length,
                     width,
                     low_light
+                WHERE id = ?;
                 """;
 
         try (Connection conn = dataSource.getConnection();
