@@ -4,7 +4,7 @@ CREATE TABLE account (
     username VARCHAR(255) UNIQUE NOT NULL
 );
 
-CREATE TABLE plant (
+CREATE TABLE plant_profile (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     family VARCHAR(255),
@@ -39,22 +39,22 @@ CREATE TABLE bed (
     low_light BOOLEAN
 );
 
-CREATE TABLE plant_bed (
+CREATE TABLE bed_plant (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     bed_id BIGINT NOT NULL REFERENCES bed(id)
         ON DELETE CASCADE,
-    plant_id BIGINT NOT NULL REFERENCES plant(id)
+    plant_profile_id BIGINT NOT NULL REFERENCES plant_profile(id)
         ON DELETE CASCADE,
     nickname VARCHAR(255),
     date_planted DATE,
     date_watered DATE
 );
 
-CREATE TABLE plant_garden (
+CREATE TABLE garden_plant (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     garden_id BIGINT NOT NULL REFERENCES garden(id)
        ON DELETE CASCADE,
-    plant_id BIGINT NOT NULL REFERENCES plant(id)
+    plant_profile_id BIGINT NOT NULL REFERENCES plant_profile(id)
        ON DELETE CASCADE,
-    UNIQUE (garden_id, plant_id)
+    UNIQUE (garden_id, plant_profile_id)
 );

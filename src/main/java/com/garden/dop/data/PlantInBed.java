@@ -2,11 +2,12 @@ package com.garden.dop.data;
 
 import java.time.LocalDate;
 
-public record Planting(
+public record PlantInBed (
         long id,
         long bedId,
-        long plantId,
+        long plantProfileId,
         String nickname,
         LocalDate datePlanted,
-        LocalDate dateWatered
+        LocalDate dateWatered,
+        PlantProfile plantProfile
 ) {}

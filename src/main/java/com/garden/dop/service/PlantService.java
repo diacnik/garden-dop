@@ -1,6 +1,6 @@
 package com.garden.dop.service;
 
-import com.garden.dop.data.Plant;
+import com.garden.dop.data.PlantProfile;
 
 import java.time.LocalDate;
 
@@ -13,39 +13,19 @@ public class PlantService {
     // get all plants in a bed
 
     // create a plant
-    public Plant createPlant(Plant plant){
-        return new Plant(
-                plant.id(),
-                plant.name(),
-                plant.genus(),
-                plant.species(),
-                plant.spreadRadius(),
-                plant.datePlanted(),
-                plant.dateWatered(),
-                plant.daysDryDown(),
-                plant.daysToHarvest(),
-                plant.hardinessZone(),
-                plant.lifeSpan(),
-                plant.lowLight()
-        );
-    }
-
-    // water a plant
-    // will move somewhere else later
-    public Plant waterPlant(Plant plant){
-        return new Plant(
-                plant.id(),
-                plant.name(),
-                plant.genus(),
-                plant.species(),
-                plant.spreadRadius(),
-                plant.datePlanted(),
-                LocalDate.now(),
-                plant.daysDryDown(),
-                plant.daysToHarvest(),
-                plant.hardinessZone(),
-                plant.lifeSpan(),
-                plant.lowLight()
+    public PlantProfile createPlant(PlantProfile plantProfile){
+        return new PlantProfile(
+                plantProfile.id(),
+                plantProfile.name(),
+                plantProfile.family(),
+                plantProfile.genus(),
+                plantProfile.species(),
+                plantProfile.spreadRadius(),
+                plantProfile.daysDryDown(),
+                plantProfile.daysToHarvest(),
+                plantProfile.hardinessZone(),
+                plantProfile.lifeSpan(),
+                plantProfile.lowLight()
         );
     }
 

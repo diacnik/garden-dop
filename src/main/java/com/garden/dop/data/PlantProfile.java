@@ -1,8 +1,6 @@
 package com.garden.dop.data;
 
-import java.time.LocalDate;
-
-public record Plant (
+public record PlantProfile(
         long id,
         String name,
         String family,
