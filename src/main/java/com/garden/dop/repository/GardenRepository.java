@@ -11,8 +11,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-public class GardenRepository implements Repository<Garden> {
+public class GardenRepository implements AccountScopedRepository<Garden> {
 
     @Inject
     private AgroalDataSource dataSource;
@@ -81,6 +82,54 @@ public class GardenRepository implements Repository<Garden> {
         } catch (SQLException ex) {
             throw new RuntimeException("Error finding all gardens", ex);
         }
+    }
+
+    public List<Garden> findAllByAccountId(UUID accountId) {
+        String sql = """
+                SELECT * FROM garden WHERE account_id = ?;
+                """;
+
+        try (Connection conn = dataSource.getConnection();
+        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
+
+            prepStmt.setObject(1, accountId, java.sql.Types.OTHER);
+
+            try (ResultSet resultSet = prepStmt.executeQuery()) {
+                List<Garden> gardens = new ArrayList<>();
+                while (resultSet.next()) {
+                    gardens.add(mapRowToGarden(resultSet));
+                }
+                return gardens;
+            }
+
+        } catch (SQLException ex) {
+            throw new RuntimeException("Error finding all gardens", ex);
+        }
+    }
+
+    public Optional<Garden> findByIdAndAccountId(UUID accountId, long id) {
+        String sql = """
+                SELECT * FROM garden
+                WHERE id = ?
+                AND (account_id = ? OR is_public = true);
+                """;
+
+        try (Connection conn = dataSource.getConnection();
+        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
+
+            prepStmt.setLong(1, id);
+            prepStmt.setObject(2, accountId, java.sql.Types.OTHER);
+
+            try (ResultSet resultSet = prepStmt.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapRowToGarden(resultSet));
+                }
+            }
+
+        } catch (SQLException ex) {
+            throw new RuntimeException("Error finding garden", ex);
+        }
+        return Optional.empty();
     }
 
     @Override

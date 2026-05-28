@@ -50,11 +50,10 @@ CREATE TABLE bed_plant (
     date_watered DATE
 );
 
-CREATE TABLE garden_plant (
+CREATE TABLE saved_plant (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    garden_id BIGINT NOT NULL REFERENCES garden(id)
-       ON DELETE CASCADE,
+    account_id UUID NOT NULL REFERENCES account(id)
+                         ON DELETE CASCADE,
     plant_profile_id BIGINT NOT NULL REFERENCES plant_profile(id)
-       ON DELETE CASCADE,
-    UNIQUE (garden_id, plant_profile_id)
+                         ON DELETE CASCADE
 );
