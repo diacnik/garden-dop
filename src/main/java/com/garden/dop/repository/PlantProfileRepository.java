@@ -3,8 +3,6 @@ package com.garden.dop.repository;
 import com.garden.dop.data.PlantProfile;
 
 import io.agroal.api.AgroalDataSource;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import java.sql.*;
 
@@ -12,13 +10,52 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@ApplicationScoped
-public class PlantProfileRepository implements Repository<PlantProfile> {
+public final class PlantProfileRepository {
 
-    @Inject
-    private AgroalDataSource dataSource;
+    // Functional Interfaces
+    @FunctionalInterface
+    public interface SqlConsumer<T> {
+        void accept(T t) throws SQLException;
+    }
 
-    public void persist(PlantProfile plantProfile) {
+    @FunctionalInterface
+    public interface SqlBiConsumer<T, U> {
+        void accept(T t, U u) throws SQLException;
+    }
+
+    @FunctionalInterface
+    public interface SqlFunction<R, T> {
+        T apply(R r) throws SQLException;
+    }
+
+
+    // Higher order functions
+    private static <T> T executeQuery(AgroalDataSource dataSource, String sql, SqlConsumer<PreparedStatement> prepStmtConsumer, SqlFunction<ResultSet, T> resultSetMapper) {
+
+        try (Connection conn = dataSource.getConnection();
+        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
+            prepStmtConsumer.accept(prepStmt);
+            try (ResultSet resultSet = prepStmt.executeQuery()) {
+                return resultSetMapper.apply(resultSet);
+            }
+        } catch (SQLException ex) {
+            throw new RuntimeException("Error executing query", ex);
+        }
+    }
+
+    private static int executeUpdate(AgroalDataSource dataSource, String sql, SqlConsumer<PreparedStatement> prepStmtConsumer) {
+
+        try (Connection conn = dataSource.getConnection();
+        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
+            prepStmtConsumer.accept(prepStmt);
+            return prepStmt.executeUpdate();
+        } catch (SQLException ex) {
+            throw new RuntimeException("Error executing query", ex);
+        }
+    }
+
+    // DB stateless(maybe?) functions
+    public static void persist (AgroalDataSource dataSource, PlantProfile plantProfile) {
         String sql = """
                 INSERT INTO plant_profile (
                     name,
@@ -32,62 +69,35 @@ public class PlantProfileRepository implements Repository<PlantProfile> {
                     years_life_span,
                     low_light)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-        """;
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            setPreparedStatementParameters(prepStmt, plantProfile);
-            prepStmt.executeUpdate();
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error persisting plant profile", ex);
-        }
+                """;
+        executeUpdate(dataSource, sql, prepStmt -> bindPlantProfileToPreparedStatement.accept(prepStmt,plantProfile));
     }
 
-    public Optional<PlantProfile> findById(long id) {
+    public static Optional<PlantProfile> findById(AgroalDataSource dataSource, long id) {
         String sql = """
                 SELECT * FROM plant_profile WHERE id = ?;
                 """;
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            prepStmt.setLong(1, id);
-            try (ResultSet resultSet = prepStmt.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapRowToPlant(resultSet));
-                }
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding plant profile", ex);
-        }
-        return Optional.empty();
+        return executeQuery(dataSource, sql,
+                prepStmt -> prepStmt.setLong(1, id),
+                resultSet -> resultSet.next() ? Optional.of(mapRowToPlantProfile.apply(resultSet)) : Optional.empty());
     }
 
-    public List<PlantProfile> findAll() {
+    public static List<PlantProfile> findAll(AgroalDataSource dataSource) {
         String sql = """
                 SELECT * FROM plant_profile;
                 """;
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            try (ResultSet resultSet = prepStmt.executeQuery()) {
-                List<PlantProfile> plantProfiles = new ArrayList<>();
-                while (resultSet.next()) {
-                    plantProfiles.add(mapRowToPlant(resultSet));
-                }
-                return plantProfiles;
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding all plant profiles", ex);
-        }
+        return executeQuery(dataSource, sql,
+                prepStmt -> {},
+                resultSet -> {
+                    List<PlantProfile> plantProfiles = new ArrayList<>();
+                    while (resultSet.next()) {
+                        plantProfiles.add(mapRowToPlantProfile.apply(resultSet));
+                    }
+                    return plantProfiles;
+                });
     }
 
-    public void update(PlantProfile plantProfile) {
+    public static void update(AgroalDataSource dataSource, PlantProfile plantProfile) {
         String sql = """
                 UPDATE plant_profile
                 SET
@@ -102,70 +112,47 @@ public class PlantProfileRepository implements Repository<PlantProfile> {
                     years_life_span = ?,
                     low_light = ?
                 WHERE id = ?;
-        """;
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-            setPreparedStatementParametersWithId(prepStmt, plantProfile);
-            prepStmt.executeUpdate();
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error updating plant profile", ex);
-        }
+                """;
+        executeUpdate(dataSource, sql, prepStmt -> {
+            bindPlantProfileToPreparedStatement.accept(prepStmt, plantProfile);
+            prepStmt.setLong(11, plantProfile.id());
+        });
     }
-    public void delete(long id) {
+
+    public static void delete(AgroalDataSource dataSource, long id) {
         String sql = """
                 DELETE FROM plant_profile WHERE id = ?;
-        """;
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-            prepStmt.setLong(1, id);
-            prepStmt.executeUpdate();
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error deleting plant profile", ex);
-        }
+                """;
+        executeUpdate(dataSource, sql, prepStmt -> prepStmt.setLong(1, id));
     }
 
-    private PlantProfile mapRowToPlant(ResultSet resultSet) throws SQLException {
-        return new PlantProfile(
-                resultSet.getLong("id"),
-                resultSet.getString("name"),
-                resultSet.getString("family"),
-                resultSet.getString("genus"),
-                resultSet.getString("species"),
-                resultSet.getInt("spread_radius"),
-                resultSet.getInt("days_dry_down"),
-                resultSet.getInt("days_to_harvest"),
-                resultSet.getInt("hardiness_zone"),
-                resultSet.getInt("life_span_years"),
-                resultSet.getBoolean("low_light")
-        );
-    }
+    // Helper functions, don't know where to put these
+    private static final SqlFunction<ResultSet, PlantProfile> mapRowToPlantProfile =
+            resultSet -> new PlantProfile(
+                    resultSet.getLong("id"),
+                    resultSet.getString("name"),
+                    resultSet.getString("family"),
+                    resultSet.getString("genus"),
+                    resultSet.getString("species"),
+                    resultSet.getInt("spread_radius"),
+                    resultSet.getInt("days_dry_down"),
+                    resultSet.getInt("days_to_harvest"),
+                    resultSet.getInt("hardiness_zone"),
+                    resultSet.getInt("life_span_years"),
+                    resultSet.getBoolean("low_light")
+            );
 
-    private void setPreparedStatementParameters(PreparedStatement prepStmt, PlantProfile plantProfile) throws SQLException {
-        prepStmt.setString(1, plantProfile.name());
-        prepStmt.setString(2, plantProfile.family());
-        prepStmt.setString(3, plantProfile.genus());
-        prepStmt.setString(4, plantProfile.species());
-        prepStmt.setInt(5, plantProfile.spreadRadius());
-        prepStmt.setInt(6, plantProfile.daysDryDown());
-        prepStmt.setInt(7, plantProfile.daysToHarvest());
-        prepStmt.setInt(8, plantProfile.hardinessZone());
-        prepStmt.setInt(9, plantProfile.lifeSpan());
-        prepStmt.setBoolean(10, plantProfile.lowLight());
-    }
-
-    private void setPreparedStatementParametersWithId(PreparedStatement prepStmt, PlantProfile plantProfile) throws SQLException {
-        prepStmt.setString(1, plantProfile.name());
-        prepStmt.setString(2, plantProfile.family());
-        prepStmt.setString(3, plantProfile.genus());
-        prepStmt.setString(4, plantProfile.species());
-        prepStmt.setInt(5, plantProfile.spreadRadius());
-        prepStmt.setInt(6, plantProfile.daysDryDown());
-        prepStmt.setInt(7, plantProfile.daysToHarvest());
-        prepStmt.setInt(8, plantProfile.hardinessZone());
-        prepStmt.setInt(9, plantProfile.lifeSpan());
-        prepStmt.setBoolean(10, plantProfile.lowLight());
-        prepStmt.setLong(11, plantProfile.id());
-    }
+    private static final SqlBiConsumer<PreparedStatement, PlantProfile> bindPlantProfileToPreparedStatement =
+            (prepStmt, plantProfile) -> {
+                prepStmt.setString(1, plantProfile.name());
+                prepStmt.setString(2, plantProfile.family());
+                prepStmt.setString(3, plantProfile.genus());
+                prepStmt.setString(4, plantProfile.species());
+                prepStmt.setInt(5, plantProfile.spreadRadius());
+                prepStmt.setInt(6, plantProfile.daysDryDown());
+                prepStmt.setInt(7, plantProfile.daysToHarvest());
+                prepStmt.setInt(8, plantProfile.hardinessZone());
+                prepStmt.setInt(9, plantProfile.lifeSpan());
+                prepStmt.setBoolean(10, plantProfile.lowLight());
+            };
 }

@@ -11,6 +11,7 @@ public class PlantProfileService {
 
     // get all profiles
 
+
     // create a plant
     public void createPlantProfile(PlantProfile plantProfile){
         plantProfileRepository.persist(
