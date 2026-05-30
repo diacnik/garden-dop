@@ -10,49 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * A repository for stateless, functional data access operations for PlantProfile records.
+ */
 public final class PlantProfileRepository {
-
-    // Functional Interfaces
-    @FunctionalInterface
-    public interface SqlConsumer<T> {
-        void accept(T t) throws SQLException;
-    }
-
-    @FunctionalInterface
-    public interface SqlBiConsumer<T, U> {
-        void accept(T t, U u) throws SQLException;
-    }
-
-    @FunctionalInterface
-    public interface SqlFunction<R, T> {
-        T apply(R r) throws SQLException;
-    }
-
-
-    // Higher order functions
-    private static <T> T executeQuery(AgroalDataSource dataSource, String sql, SqlConsumer<PreparedStatement> prepStmtConsumer, SqlFunction<ResultSet, T> resultSetMapper) {
-
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-            prepStmtConsumer.accept(prepStmt);
-            try (ResultSet resultSet = prepStmt.executeQuery()) {
-                return resultSetMapper.apply(resultSet);
-            }
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error executing query", ex);
-        }
-    }
-
-    private static int executeUpdate(AgroalDataSource dataSource, String sql, SqlConsumer<PreparedStatement> prepStmtConsumer) {
-
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-            prepStmtConsumer.accept(prepStmt);
-            return prepStmt.executeUpdate();
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error executing query", ex);
-        }
-    }
 
     // DB stateless(maybe?) functions
     public static void persist (AgroalDataSource dataSource, PlantProfile plantProfile) {
@@ -70,14 +31,14 @@ public final class PlantProfileRepository {
                     low_light)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """;
-        executeUpdate(dataSource, sql, prepStmt -> bindPlantProfileToPreparedStatement.accept(prepStmt,plantProfile));
+        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> bindPlantProfileToPreparedStatement.accept(prepStmt,plantProfile));
     }
 
     public static Optional<PlantProfile> findById(AgroalDataSource dataSource, long id) {
         String sql = """
                 SELECT * FROM plant_profile WHERE id = ?;
                 """;
-        return executeQuery(dataSource, sql,
+        return JdbcPipeline.executeQuery(dataSource, sql,
                 prepStmt -> prepStmt.setLong(1, id),
                 resultSet -> resultSet.next() ? Optional.of(mapRowToPlantProfile.apply(resultSet)) : Optional.empty());
     }
@@ -86,7 +47,7 @@ public final class PlantProfileRepository {
         String sql = """
                 SELECT * FROM plant_profile;
                 """;
-        return executeQuery(dataSource, sql,
+        return JdbcPipeline.executeQuery(dataSource, sql,
                 prepStmt -> {},
                 resultSet -> {
                     List<PlantProfile> plantProfiles = new ArrayList<>();
@@ -113,7 +74,7 @@ public final class PlantProfileRepository {
                     low_light = ?
                 WHERE id = ?;
                 """;
-        executeUpdate(dataSource, sql, prepStmt -> {
+        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> {
             bindPlantProfileToPreparedStatement.accept(prepStmt, plantProfile);
             prepStmt.setLong(11, plantProfile.id());
         });
@@ -123,11 +84,11 @@ public final class PlantProfileRepository {
         String sql = """
                 DELETE FROM plant_profile WHERE id = ?;
                 """;
-        executeUpdate(dataSource, sql, prepStmt -> prepStmt.setLong(1, id));
+        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> prepStmt.setLong(1, id));
     }
 
     // Helper functions, don't know where to put these
-    private static final SqlFunction<ResultSet, PlantProfile> mapRowToPlantProfile =
+    private static final JdbcPipeline.JdbcFunction<ResultSet, PlantProfile> mapRowToPlantProfile =
             resultSet -> new PlantProfile(
                     resultSet.getLong("id"),
                     resultSet.getString("name"),
@@ -142,7 +103,7 @@ public final class PlantProfileRepository {
                     resultSet.getBoolean("low_light")
             );
 
-    private static final SqlBiConsumer<PreparedStatement, PlantProfile> bindPlantProfileToPreparedStatement =
+    private static final JdbcPipeline.JdbcBiConsumer<PreparedStatement, PlantProfile> bindPlantProfileToPreparedStatement =
             (prepStmt, plantProfile) -> {
                 prepStmt.setString(1, plantProfile.name());
                 prepStmt.setString(2, plantProfile.family());
