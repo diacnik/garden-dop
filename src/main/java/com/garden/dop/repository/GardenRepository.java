@@ -13,13 +13,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class GardenRepository implements AccountScopedRepository<Garden> {
+/**
+ * A repository for stateless, functional data access operations for Garden records.
+ */
+public class GardenRepository {
 
-    @Inject
-    private AgroalDataSource dataSource;
-
-    @Override
-    public void persist(Garden garden) {
+    public static void persist(AgroalDataSource dataSource, Garden garden) {
         String sql = """
                 INSERT INTO garden (
                     account_id,
@@ -30,110 +29,67 @@ public class GardenRepository implements AccountScopedRepository<Garden> {
                     ) VALUES (?,?,?,?,?);
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            setPreparedStatementParameters(prepStmt, garden);
-            prepStmt.executeUpdate();
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error persisting garden", ex);
-        }
+        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> bindGardenToPreparedStatement.accept(prepStmt, garden));
     }
 
-    @Override
-    public Optional<Garden> findById(long id) {
+    public static Optional<Garden> findById(AgroalDataSource dataSource, long id) {
         String sql = """
                 SELECT * FROM garden WHERE id = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-            prepStmt.setLong(1, id);
-            try (ResultSet resultSet = prepStmt.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapRowToGarden(resultSet));
-                }
-            }
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding garden", ex);
-        }
-
-        return Optional.empty();
+        return JdbcPipeline.executeQuery(dataSource, sql,
+                prepStmt -> prepStmt.setLong(1, id),
+                resultSet -> resultSet.next() ? Optional.of(mapRowToGarden.apply(resultSet)) : Optional.empty());
     }
 
-    @Override
-    public List<Garden> findAll() {
+    public static List<Garden> findAll(AgroalDataSource dataSource) {
         String sql = """
                 SELECT * FROM garden;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            try (ResultSet resultSet = prepStmt.executeQuery()) {
-                List<Garden> gardens = new ArrayList<>();
-                while (resultSet.next()) {
-                    gardens.add(mapRowToGarden(resultSet));
-                }
-                return gardens;
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding all gardens", ex);
-        }
+        return JdbcPipeline.executeQuery(dataSource, sql,
+                prepStmt -> {},
+                resultSet -> {
+                    List<Garden> gardens = new ArrayList<>();
+                    while (resultSet.next()) {
+                        gardens.add(mapRowToGarden.apply(resultSet));
+                    }
+                    return gardens;
+                });
     }
 
-    public List<Garden> findAllByAccountId(UUID accountId) {
+    public List<Garden> findAllByAccountId(AgroalDataSource dataSource, UUID accountId) {
         String sql = """
                 SELECT * FROM garden WHERE account_id = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            prepStmt.setObject(1, accountId, java.sql.Types.OTHER);
-
-            try (ResultSet resultSet = prepStmt.executeQuery()) {
-                List<Garden> gardens = new ArrayList<>();
-                while (resultSet.next()) {
-                    gardens.add(mapRowToGarden(resultSet));
-                }
-                return gardens;
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding all gardens", ex);
-        }
+        return JdbcPipeline.executeQuery(dataSource, sql,
+                prepStmt -> prepStmt.setObject(1, accountId),
+                resultSet -> {
+                    List<Garden> gardens = new ArrayList<>();
+                    while (resultSet.next()) {
+                        gardens.add(mapRowToGarden.apply(resultSet));
+                    }
+                    return gardens;
+                });
     }
 
-    public Optional<Garden> findByIdAndAccountId(UUID accountId, long id) {
+    public static Optional<Garden> findByIdAndAccountId(AgroalDataSource dataSource, UUID accountId, long id) {
         String sql = """
                 SELECT * FROM garden
                 WHERE id = ?
                 AND (account_id = ? OR is_public = true);
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
+        return JdbcPipeline.executeQuery(dataSource, sql,
+                prepStmt -> {
             prepStmt.setLong(1, id);
-            prepStmt.setObject(2, accountId, java.sql.Types.OTHER);
-
-            try (ResultSet resultSet = prepStmt.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapRowToGarden(resultSet));
-                }
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding garden", ex);
-        }
-        return Optional.empty();
+            prepStmt.setObject(2, accountId);
+                },
+                resultSet -> resultSet.next() ? Optional.of(mapRowToGarden.apply(resultSet)) : Optional.empty());
     }
 
-    @Override
-    public void update(Garden garden) {
+    public static void update(AgroalDataSource dataSource, Garden garden) {
         String sql = """
                 UPDATE garden
                 SET
@@ -145,55 +101,36 @@ public class GardenRepository implements AccountScopedRepository<Garden> {
                 WHERE id = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-            setPreparedStatementParametersWithId(prepStmt, garden);
-            prepStmt.executeUpdate();
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error updating garden", ex);
-        }
+        JdbcPipeline.executeUpdate(dataSource, sql,
+                prepStmt -> {
+                    bindGardenToPreparedStatement.accept(prepStmt, garden);
+                    prepStmt.setLong(6, garden.id());
+                });
     }
 
-    @Override
-    public void delete(long id) {
+    public static void delete(AgroalDataSource dataSource, long id) {
         String sql = """
                 DELETE FROM garden WHERE id = ?;
                 """;
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-            prepStmt.setLong(1, id);
-            prepStmt.executeUpdate();
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error deleting garden", ex);
-        }
+        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> prepStmt.setLong(1, id));
     }
 
-    private Garden mapRowToGarden(ResultSet resultSet)  throws SQLException {
-        return new Garden(
-                resultSet.getLong("id"),
-                resultSet.getObject("account_id", java.util.UUID.class),
-                resultSet.getString("name"),
-                resultSet.getBoolean(("indoors")),
-                resultSet.getInt("hardiness_zone"),
-                resultSet.getBoolean("is_public")
-        );
-    }
+    private static final JdbcPipeline.JdbcFunction<ResultSet, Garden> mapRowToGarden =
+            resultSet ->  new Garden(
+                    resultSet.getLong("id"),
+                    resultSet.getObject("account_id", java.util.UUID.class),
+                    resultSet.getString("name"),
+                    resultSet.getBoolean("indoors"),
+                    resultSet.getInt("hardiness_zone"),
+                    resultSet.getBoolean("is_public")
+            );
 
-    private void setPreparedStatementParameters(PreparedStatement prepStmt, Garden garden) throws SQLException {
-        prepStmt.setObject(1, garden.accountId());
-        prepStmt.setString(2, garden.name());
-        prepStmt.setBoolean(3, garden.indoors());
-        prepStmt.setInt(4, garden.hardinessZone());
-        prepStmt.setBoolean(5, garden.isPublic());
-    }
-
-    private void setPreparedStatementParametersWithId(PreparedStatement prepStmt, Garden garden) throws SQLException {
-        prepStmt.setObject(1, garden.accountId());
-        prepStmt.setString(2, garden.name());
-        prepStmt.setBoolean(3, garden.indoors());
-        prepStmt.setInt(4, garden.hardinessZone());
-        prepStmt.setBoolean(5, garden.isPublic());
-        prepStmt.setLong(6, garden.id());
-    }
+    private static final JdbcPipeline.JdbcBiConsumer<PreparedStatement, Garden> bindGardenToPreparedStatement =
+            (prepStmt, garden) -> {
+                prepStmt.setObject(1, garden.accountId());
+                prepStmt.setString(2, garden.name());
+                prepStmt.setBoolean(3, garden.indoors());
+                prepStmt.setInt(4, garden.hardinessZone());
+                prepStmt.setBoolean(5, garden.isPublic());
+            };
 }

@@ -31,7 +31,7 @@ public final class PlantProfileRepository {
                     low_light)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """;
-        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> bindPlantProfileToPreparedStatement.accept(prepStmt,plantProfile));
+        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> bindPlantProfileToPreparedStatement.accept(prepStmt, plantProfile));
     }
 
     public static Optional<PlantProfile> findById(AgroalDataSource dataSource, long id) {
@@ -74,9 +74,10 @@ public final class PlantProfileRepository {
                     low_light = ?
                 WHERE id = ?;
                 """;
-        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> {
-            bindPlantProfileToPreparedStatement.accept(prepStmt, plantProfile);
-            prepStmt.setLong(11, plantProfile.id());
+        JdbcPipeline.executeUpdate(dataSource, sql,
+                prepStmt -> {
+                    bindPlantProfileToPreparedStatement.accept(prepStmt, plantProfile);
+                    prepStmt.setLong(11, plantProfile.id());
         });
     }
 

@@ -12,13 +12,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class PlantInBedRepository implements AccountScopedRepository<PlantInBed> {
+/**
+ * A repository for stateless, functional data access operations for PlantInBed records.
+ */
+public class PlantInBedRepository {
 
     @Inject
     private AgroalDataSource dataSource;
 
-    @Override
-    public List findAllByAccountId(UUID accountId) {
+    public List<PlantInBed> findAllByAccountId(AgroalDataSource dataSource, UUID accountId) {
         String sql = """
                 SELECT
                     bp.id,
@@ -45,25 +47,18 @@ public class PlantInBedRepository implements AccountScopedRepository<PlantInBed>
                 WHERE g.account_id = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            prepStmt.setObject(1, accountId);
-
-            try (ResultSet resultset = prepStmt.executeQuery()) {
-                List<PlantInBed> plantInBeds = new ArrayList<>();
-                while (resultset.next()) {
-                    plantInBeds.add(mapRowToPlantInBed(resultset));
-                }
-                return plantInBeds;
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding all plants in beds based on account id", ex);
-        }
+        return JdbcPipeline.executeQuery(dataSource, sql,
+                prepStmt -> prepStmt.setObject(1, accountId),
+                resultSet -> {
+                    List<PlantInBed> plantInBeds = new ArrayList<>();
+                    while (resultSet.next()) {
+                        plantInBeds.add(mapRowToPlantInBed.apply(resultSet));
+                    }
+                    return plantInBeds;
+                });
     }
 
-    public List findAllPlantsInBed(UUID accountId, Bed bed) {
+    public List findAllPlantsInBed(AgroalDataSource dataSource, UUID accountId, Bed bed) {
         String sql = """
                 SELECT
                     bp.id,
@@ -91,27 +86,21 @@ public class PlantInBedRepository implements AccountScopedRepository<PlantInBed>
                     AND (g.account_id = ? OR g.is_public = true);
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            prepStmt.setLong(1, bed.id());
-            prepStmt.setObject(2, accountId);
-
-            try (ResultSet resultset = prepStmt.executeQuery()) {
-                List<PlantInBed> plantInBeds = new ArrayList<>();
-                while (resultset.next()) {
-                    plantInBeds.add(mapRowToPlantInBed(resultset));
-                }
-                return plantInBeds;
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding all plants in bed", ex);
-        }
+        return JdbcPipeline.executeQuery(dataSource, sql,
+                prepStmt -> {
+                    prepStmt.setLong(1, bed.id());
+                    prepStmt.setObject(2, accountId);
+                },
+                resultSet -> {
+                    List<PlantInBed> plantInBeds = new ArrayList<>();
+                    while (resultSet.next()) {
+                        plantInBeds.add(mapRowToPlantInBed.apply(resultSet));
+                    }
+                    return plantInBeds;
+                });
     }
 
-    @Override
-    public void persist(PlantInBed plantInBed) {
+    public void persist(AgroalDataSource dataSource, PlantInBed plantInBed) {
         String sql = """
                 INSERT INTO bed_plant (
                 bed_id,
@@ -122,63 +111,36 @@ public class PlantInBedRepository implements AccountScopedRepository<PlantInBed>
                 ) VALUES (?,?,?,?,?);
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            setPreparedStatementParameters(prepStmt, plantInBed);
-            prepStmt.executeUpdate();
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error persisting bed plant", ex);
-        }
+        JdbcPipeline.executeUpdate(dataSource,sql, prepStmt -> bindPlantInBedToPreparedStatement.accept(prepStmt, plantInBed));
     }
 
-    @Override
     public Optional findById(long id) {
         String sql = """
                 SELECT * FROM bed_plant WHERE id = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            prepStmt.setLong(1, id);
-            try (ResultSet resultset = prepStmt.executeQuery()) {
-                if (resultset.next()) {
-                    return Optional.of(mapRowToPlantInBed(resultset));
-                }
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding bed plant", ex);
-        }
-        return Optional.empty();
+        return JdbcPipeline.executeQuery(dataSource, sql,
+                prepStmt -> prepStmt.setLong(1, id),
+                resultSet -> resultSet.next() ? Optional.of(mapRowToPlantInBed.apply(resultSet)) : Optional.empty());
     }
 
-    @Override
-    public List findAll() {
+    public List<PlantInBed> findAll() {
         String sql = """
                 SELECT * FROM bed_plant;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            try (ResultSet resultset = prepStmt.executeQuery()) {
-                List<PlantInBed> plantInBeds = new ArrayList<>();
-                while (resultset.next()) {
-                    plantInBeds.add(mapRowToPlantInBed(resultset));
-                }
-                return plantInBeds;
-            }
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error finding all plants in beds", ex);
-        }
+        return JdbcPipeline.executeQuery(dataSource, sql,
+                prepStmt -> {},
+                resultSet -> {
+                    List<PlantInBed> plantInBeds = new ArrayList<>();
+                    while (resultSet.next()) {
+                        plantInBeds.add(mapRowToPlantInBed.apply(resultSet));
+                    }
+                    return plantInBeds;
+                });
     }
 
-    @Override
-    public void update(PlantInBed plantInBed) {
+    public void update(AgroalDataSource dataSource, PlantInBed plantInBed) {
         String sql = """
                 UPDATE bed_plant
                 SET
@@ -190,36 +152,25 @@ public class PlantInBedRepository implements AccountScopedRepository<PlantInBed>
                 WHERE id = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            setPreparedStatementParametersWithId(prepStmt, plantInBed);
-            prepStmt.executeUpdate();
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error updating bed plant", ex);
-        }
+        JdbcPipeline.executeUpdate(dataSource, sql,
+                prepStmt -> {
+                    bindPlantInBedToPreparedStatement.accept(prepStmt, plantInBed);
+                    prepStmt.setLong(1, plantInBed.id());
+        });
     }
 
-    @Override
-    public void delete(long id) {
+    public void delete(AgroalDataSource dataSource, long id) {
         String sql = """
                 DELETE FROM bed_plant WHERE id = ?;
                 """;
 
-        try (Connection conn = dataSource.getConnection();
-        PreparedStatement prepStmt = conn.prepareStatement(sql)) {
-
-            prepStmt.setLong(1, id);
-            prepStmt.executeUpdate();
-
-        } catch (SQLException ex) {
-            throw new RuntimeException("Error deleting bed plant", ex);
-        }
+        JdbcPipeline.executeUpdate(dataSource, sql, prepStmt -> prepStmt.setLong(1, id));
     }
 
-    private PlantInBed mapRowToPlantInBed(ResultSet resultSet) throws SQLException {
-        return new PlantInBed(
+
+
+    private static final JdbcPipeline.JdbcFunction<ResultSet, PlantInBed> mapRowToPlantInBed =
+        resultSet -> new PlantInBed(
                 resultSet.getLong("bp.id"),
                 resultSet.getLong("bp.bed_id"),
                 resultSet.getLong("bp.plant_profile_id"),
@@ -240,22 +191,13 @@ public class PlantInBedRepository implements AccountScopedRepository<PlantInBed>
                         resultSet.getBoolean("low_light")
                 )
         );
-    }
 
-    private void setPreparedStatementParameters(PreparedStatement prepStmt, PlantInBed plantInBed) throws SQLException {
-        prepStmt.setLong(1, plantInBed.bedId());
-        prepStmt.setLong(2, plantInBed.plantProfileId());
-        prepStmt.setString(3, plantInBed.nickname());
-        prepStmt.setDate(4, Date.valueOf(plantInBed.datePlanted()));
-        prepStmt.setDate(5, Date.valueOf(plantInBed.dateWatered()));
-    }
-
-    private void setPreparedStatementParametersWithId(PreparedStatement prepStmt, PlantInBed plantInBed) throws SQLException {
-        prepStmt.setLong(1, plantInBed.bedId());
-        prepStmt.setLong(2, plantInBed.plantProfileId());
-        prepStmt.setString(3, plantInBed.nickname());
-        prepStmt.setDate(4, Date.valueOf(plantInBed.datePlanted()));
-        prepStmt.setDate(5, Date.valueOf(plantInBed.dateWatered()));
-        prepStmt.setLong(6, plantInBed.id());
-    }
+    private static final JdbcPipeline.JdbcBiConsumer<PreparedStatement, PlantInBed> bindPlantInBedToPreparedStatement =
+            (prepStmt, plantInBed) -> {
+                prepStmt.setLong(1, plantInBed.bedId());
+                prepStmt.setLong(2, plantInBed.plantProfileId());
+                prepStmt.setString(3, plantInBed.nickname());
+                prepStmt.setDate(4, Date.valueOf(plantInBed.datePlanted()));
+                prepStmt.setDate(5, Date.valueOf(plantInBed.dateWatered()));
+            };
 }
